@@ -5,7 +5,7 @@ import { Injectable, Logger, ForbiddenException, InternalServerErrorException } 
 import { DbSchemaService, DbColumnInfo } from 'src/dbSchema/db-schema.service';
 
 export class ForbiddenSqlOperationError extends ForbiddenException {
-    constructor(message = 'No puedo realizar esa acción. Solo puedo ayudarte a buscar y consultar información, pero no a modificarla o eliminarla.') {
+    constructor(message = "I can't perform this action. I can only help you search and view information, but not modify or delete it.") {
         super(message);
         this.name = 'ForbiddenSqlOperationError';
     }
@@ -56,37 +56,31 @@ export class GeminiService {
     async getGeminiResponse(userQuestion: string) {
 
         try {
-            // 1. Generar la consulta SQL segura
+            // 1. Generate the secure SQL query
             const sqlQuery = await this.getSQLQueryFromQuestion(userQuestion);
             //   this.logger.log(`Safely generated SQL: ${sqlQuery}`);
 
-            // 2. Ejecutar la consulta SQL
+            // 2. Execute the SQL query
             const queryResults = await this.executeQuery(sqlQuery);
             //  this.logger.log(`Query executed successfully. Result count: ${queryResults?.length ?? 0}`);
 
-            // 3. Obtener la explicación en lenguaje natural
+            // 3. Get the explanation in natural language
             const finalExplanation = await this.getHumanReadableExplanation(userQuestion, queryResults);
             this.logger.log(`Generated final explanation for user.`);
 
             return finalExplanation;
 
         } catch (error) {
-            // Manejar errores específicos o generales
             if (error instanceof ForbiddenSqlOperationError) {
                 this.logger.warn(`Process stopped: ${error.message}`);
-                // Puedes optar por devolver el mensaje de error directamente al usuario
-                // o lanzar la excepción para que la maneje un controlador superior
-                throw error; // Relanzar para que el controlador decida (ej: devolver 403)
-                // return error.message; // Alternativa: devolver mensaje directo
+                throw error;
             } else if (error instanceof InternalServerErrorException) {
-                // Errores esperados durante la ejecución o explicación
                 this.logger.error(`Error during query execution or explanation phase: ${error.message}`, error.stack);
-                throw error; // Relanzar para que el controlador decida (ej: devolver 500)
+                throw error;
             }
-            else {
-                // Errores inesperados
+            else { // Unexpected errors
                 this.logger.error(`Unexpected error in getGeminiResponse flow: ${error.message}`, error.stack);
-                throw new InternalServerErrorException('Ocurrió un error inesperado al procesar tu solicitud.');
+                throw new InternalServerErrorException('An unexpected error occurred while processing your request..');
             }
         }
     }
@@ -105,7 +99,7 @@ export class GeminiService {
         } catch (dbError) {
             this.logger.error(`Database query execution failed for query "${sqlQuery}": ${dbError.message}`, dbError.stack);
             // Throw a more generic error to avoid exposing DB details
-            throw new InternalServerErrorException('Error al ejecutar la consulta en la base de datos.');
+            throw new InternalServerErrorException('Error executing query in database.');
         }
     }
 
@@ -117,12 +111,11 @@ export class GeminiService {
    * @returns A natural language explanation.
    */
     private async getHumanReadableExplanation(originalQuestion: string, queryResults: any): Promise<string> {
-        // Formatear los resultados para incluirlos en el prompt (JSON es una buena opción)
-        // Considera limitar el tamaño si los resultados pueden ser muy grandes
+        // Format the results for inclusion in the prompt
         const resultsString = JSON.stringify(queryResults, null, 2); // Pretty print JSON
 
-        // Limitar longitud si es necesario para no exceder limites del prompt
-        const maxResultsLength = 3000; // Ajusta según necesidad/límites de Gemini
+        // Limit length if necessary to avoid exceeding prompt limits
+        const maxResultsLength = 3000; // Adjust according to Gemini's needs/limits
         const truncatedResultsString = resultsString.length > maxResultsLength
             ? resultsString.substring(0, maxResultsLength) + "\n... (resultados truncados)"
             : resultsString;
@@ -150,7 +143,7 @@ export class GeminiService {
 
             if (!finalGeneratedText) {
                 this.logger.error('Gemini response for explanation is empty.');
-                throw new Error('No se pudo obtener respuesta.');
+                throw new Error('No response could be obtained.');
             }
 
 
@@ -158,7 +151,7 @@ export class GeminiService {
 
         } catch (error) {
             this.logger.error(`Error calling Gemini for explanation: ${error.message}`, error.stack);
-            throw new InternalServerErrorException('Error al generar la explicación final de los resultados.');
+            throw new InternalServerErrorException('Error generating the final explanation of the results.');
         }
     }
 
